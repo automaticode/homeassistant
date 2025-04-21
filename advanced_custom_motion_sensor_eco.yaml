@@ -1,41 +1,19 @@
 blueprint:
-  name: Advanced Custom Motion Sensor Enhanced Eco
-  description: 'This motion sensor is based on several ideas from other blueprints,
-    and adding my own customizations.
-
-    Inputs and actions are:
-
-    - Turn on lights or scenes when motion is detected. The trigger can be a motion
-    detector or anything that switches between ON and OFF. You can use several motion
-    detectors.
-
+  name: Advanced Custom Motion Sensor Eco
+  description: "This motion sensor is based on several ideas from other blueprints,
+    and adding my own customizations.\n\n \n\n Inputs and actions are:\n - Turn on
+    lights or scenes when motion is detected. The trigger can be a motion detector
+    or anything that switches between ON and OFF. You can use several motion detectors.\n
     - The activation can be triggered between a certain time slot (so the bathroom
-    light does not turn on in the middle of the night)
-
-    - You can specify a luminance value: only run when it is darker than indicated
-
-    - Sun horizon setting: you can run the action always, or only when the sun is
-    above or below the horizon.
-
-    - You can adjust the horizon by giving an elevation adjustment number
-
-    - Wait time for turning off
-
-    - Only run if an optional entity is in desired state (optional)
-
-    - Default scene when motion stops (optional)
-
-    - Only run the motion off action if an optional entity is in desired state
-
-    Based on the work from https://github.com/arturoliveira/home-assistant/blob/main/advanced_custom_motion_sensor.yaml
-
-    Changes included:
-
-    - Now support we can define multiple automation and motion blocker entities
-
-    '
+    light does not turn on in the middle of the night)\n - You can specify a luminance
+    value: only run when it is darker than indicated\n - Sun horizon setting: you
+    can run the action always, or only when the sun is above or below the horizon.\n
+    - You can adjust the horizon by giving an elevation adjustment number\n - Wait
+    time for turning off\n - Only run if an optional entity is in desired state (optional)\n
+    - Default scene when motion stops (optional)\n - Only run the motion off action
+    if an optional entity is in desired state\n"
   domain: automation
-  source_url: https://github.com/arturoliveira/home-assistant/blob/main/advanced_custom_motion_sensor.yaml
+  source_url: https://github.com/brigger/HomeAssistant_Blueprints/blob/5bb7521cb9fe25ca9d34a408bf66c6fb5415ea6a/advanced_custom_motion_sensor.yaml
   input:
     motion_entity:
       name: Motion Sensor
@@ -46,7 +24,6 @@ blueprint:
           multiple: true
     light_target:
       name: Light
-      description: The lights you want to control when motion is detected.
       selector:
         target:
           entity:
@@ -72,8 +49,8 @@ blueprint:
           min: 0.0
           max: 1000.0
           unit_of_measurement: lx
-          step: 1.0
           mode: slider
+          step: 1.0
     no_motion_wait:
       name: Wait time
       description: Time to leave the light on after last motion is detected.
@@ -83,17 +60,6 @@ blueprint:
           min: 0.0
           max: 600.0
           unit_of_measurement: seconds
-          mode: slider
-          step: 1.0
-    brightness_level:
-      name: Brightness Level (Percentage)
-      description: Brightness level to set for all lights, in percentage (0-100).
-      default: 30
-      selector:
-        number:
-          min: 0.0
-          max: 100.0
-          unit_of_measurement: '%'
           mode: slider
           step: 1.0
     time_default_start:
@@ -126,9 +92,10 @@ blueprint:
           custom_value: false
     elevation_adjustment:
       name: Sun elevation adjustment (Optional)
-      description: With a positive number, the sun is further above the horizon. For
+      description: With a postivie number, the sun is further above the horizon. For
         instance, +10 approximately means the trigger will activate one hour before
-        the sun is below horizon.
+        the sun is below horizon. A negative number moves the trigger further below
+        the horizon.
       default: 0
       selector:
         number:
@@ -137,16 +104,17 @@ blueprint:
           unit_of_measurement: degrees
           mode: slider
           step: 1.0
-    automation_blocker_entities:
+    automation_blocker:
       name: Automation Blocker (Optional)
       description: Only run if this boolean is in desired state (see next input)
       default:
       selector:
         entity:
-          multiple: true
+          multiple: false
     automation_blocker_boolean:
-      name: Automation Blocker (Optional)
-      description: Desired state of automation off blocker
+      name: Automation Blocker Chooser (Optional)
+      description: Desired state of automation blocker, choose on for on and off for
+        off
       default: false
       selector:
         boolean: {}
@@ -157,7 +125,7 @@ blueprint:
       default:
       selector:
         entity:
-          multiple: true
+          multiple: false
     motion_off_blocker_boolean:
       name: Motion Off Chooser (Optional)
       description: Desired state of motion off blocker
@@ -199,16 +167,15 @@ mode: restart
 max_exceeded: silent
 variables:
   scene_ambient: !input scene_ambient
+  automation_blocker: !input automation_blocker
   automation_blocker_boolean: !input automation_blocker_boolean
-  automation_blocker_entities: !input automation_blocker_entities
-  motion_off_blocker_boolean: !input motion_off_blocker_boolean
   motion_off_blocker: !input motion_off_blocker
+  motion_off_blocker_boolean: !input motion_off_blocker_boolean
   elevation: !input elevation
   elevation_adjustment: !input elevation_adjustment
   motion_entity: !input motion_entity
   luminance_sensor: !input luminance_sensor
   luminance_required: !input luminance_required
-  brightness_level: !input brightness_level
 trigger:
 - platform: state
   entity_id: !input motion_entity
@@ -220,32 +187,21 @@ trigger:
   to: 'off'
   for: !input no_motion_wait
 condition:
+- condition: or
+  conditions:
+  - '{{ automation_blocker == none }}'
+  - '{{ automation_blocker_boolean and states[automation_blocker].state == ''on''
+    }}'
+  - '{{ not automation_blocker_boolean and states[automation_blocker].state == ''off''
+    }}'
 - condition: template
-  value_template: "{% if automation_blocker_entities | length == 0 %}\n  true\n{%
-    else %}\n  {% set unmatched_states = namespace(matched=True) %}\n  {% for entity
-    in automation_blocker_entities %}\n    {% set entity_state = states[entity].state
-    %}\n    {% if (automation_blocker_boolean and entity_state != 'on') or (not automation_blocker_boolean
-    and entity_state != 'off') %}\n      {% set unmatched_states.matched = False %}\n
-    \     {% break %}\n    {% endif %}\n  {% endfor %}\n  {{ unmatched_states.matched
-    }}\n{% endif %}\n"
-- condition: template
-  value_template: "{% if 'Always' == elevation %}\n  true\n{% else %}\n  {% set sun_elevation
-    = state_attr('sun.sun', 'elevation') %}\n  {% if sun_elevation is none %}\n      false\n
-    \ {% else %}\n    {% if (sun_elevation > elevation_adjustment and 'Above horizon'
-    == elevation) or\n          (sun_elevation <= elevation_adjustment and 'Below
-    horizon' == elevation) %}\n      true\n    {% else %}\n      false\n    {% endif
-    %}\n  {% endif %}\n{% endif %}\n"
+  value_template: "{% if 'Always' == elevation %}\n  true\n{% else %} {% set sun_elevation
+    = state_attr('sun.sun', 'elevation') %} {% if sun_elevation is none %}\n    false\n{%
+    else %}\n  {% \n     if (sun_elevation > elevation_adjustment and 'Above horizon'
+    == elevation) or\n        (sun_elevation <= elevation_adjustment and 'Below horizon'
+    == elevation) %}\n    true\n  {% else %}\n    false\n  {% endif %}\n{% endif %}
+    {% endif %}\n"
 action:
-- service: logbook.log
-  data:
-    name: Automation Debug
-    message: "{% if automation_blocker_entities | length == 0 %}\n  true\n{% else
-      %}\n  {% set unmatched_states = namespace(matched=True) %}\n  {% for entity
-      in automation_blocker_entities %}\n    {% set entity_state = states[entity].state
-      %}\n    {% if (automation_blocker_boolean and entity_state != 'on') or (not
-      automation_blocker_boolean and entity_state != 'off') %}\n      {% set unmatched_states.matched
-      = False %}\n      {% break %}\n    {% endif %}\n  {% endfor %}\n  {{ unmatched_states.matched
-      }}\n{% endif %}\n"
 - choose:
   - conditions:
     - condition: template
@@ -259,21 +215,16 @@ action:
       before: !input time_default_end
     - service: light.turn_on
       target: !input light_target
-      data:
-        brightness: '{% set brightness_pct = brightness_level | default(30) %} {%
-          set brightness = (brightness_pct / 100) * 255 %} {{ brightness | round(0)
-          }}
-
-          '
   - conditions:
     - condition: template
-      value_template: "{% if motion_off_blocker | length == 0 %}\n  true\n{% else
-        %}\n  {% set unmatched_states = namespace(matched=True) %}\n  {% for entity
-        in motion_off_blocker %}\n    {% set entity_state = states[entity].state %}\n
-        \   {% if (motion_off_blocker_boolean and entity_state != 'on') or (not motion_off_blocker_boolean
-        and entity_state != 'off') %}\n      {% set unmatched_states.matched = False
-        %}\n      {% break %}\n    {% endif %}\n  {% endfor %}\n  {{ unmatched_states.matched
-        }}\n{% endif %}\n"
+      value_template: '{{ trigger.to_state.state == ''off'' }}'
+    - condition: or
+      conditions:
+      - '{{ motion_off_blocker == none }}'
+      - '{{ motion_off_blocker_boolean and states[motion_off_blocker].state == ''on''
+        }}'
+      - '{{ not motion_off_blocker_boolean and states[motion_off_blocker].state ==
+        ''off'' }}'
     sequence:
     - choose:
       - conditions:

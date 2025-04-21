@@ -1,5 +1,5 @@
 blueprint:
-  name: Advanced Custom Motion Sensor eco
+  name: Advanced Custom Motion Sensor Enhanced
   description: 'This motion sensor is based on several ideas from other blueprints,
     and adding my own customizations.
 
@@ -173,6 +173,16 @@ blueprint:
           domain:
           - scene
           multiple: false
+    ambient_scene_duration:
+      name: Ambient Scene Duration
+      description: Time in seconds to keep the ambient scene active before turning off the lights.
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 3600
+          step: 1
+          unit_of_measurement: seconds
     time_scene_ambient_start:
       name: Ambient time frame start (Optional)
       description: Time from which on ambient scene will be activated
@@ -185,16 +195,6 @@ blueprint:
       default: 00:00:00
       selector:
         time: {}
-    ambient_scene_duration:
-      name: Ambient Scene Duration
-      description: Time in seconds to keep the ambient scene active before turning off the lights.
-      default: 60
-      selector:
-        number:
-          min: 0
-          max: 3600
-          step: 1
-          unit_of_measurement: seconds
 mode: restart
 max_exceeded: silent
 variables:

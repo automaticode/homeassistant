@@ -22,6 +22,13 @@ blueprint:
       selector:
         entity:
           multiple: true
+    scene_motion_on:
+      name: Scene on Motion
+      description: Scene to activate when motion is detected.
+      selector:
+        entity:
+          domain:
+          - scene
     light_target:
       name: Light
       selector:
@@ -213,8 +220,7 @@ action:
     - condition: time
       after: !input time_default_start
       before: !input time_default_end
-    - service: light.turn_on
-      target: !input light_target
+    - scene: !input scene_motion_on
   - conditions:
     - condition: template
       value_template: '{{ trigger.to_state.state == ''off'' }}'
